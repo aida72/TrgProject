@@ -6,5 +6,6 @@ def hello():
     return "Hello World!"
 
 if __name__== "__main__" :
-    app.config["SERVER_NAME"] = 'localhost:8087'
-    app.run()
+    
+    context = ('/etc/ssl_certs/cert.pem', '/etc/ssl_certs/key.pem')#certificate and key files
+    app.run( host='0.0.0.0', port=8087,  ssl_context = context )
