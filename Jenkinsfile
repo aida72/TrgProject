@@ -2,12 +2,13 @@ def  app = ''
 pipeline {
     agent any
     stages {
-            stage('Clone repository') {               
+            stage('Initialize') {
                 steps {
                     script {
-                        git branch: "main", url: 'https://github.com/aida72/TrgProject.git' 
+                        properties([pipelineTriggers([pollSCM('H * * * *')])])
                     }
-                }  
+                    git branch: "main", url: 'https://github.com/aida72/TrgProject.git'
+                }
             }
             stage('Build image') {         
                 steps {
