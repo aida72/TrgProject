@@ -1,0 +1,87 @@
+<?xml version='1.1' encoding='UTF-8'?>
+<flow-definition plugin="workflow-job@2.40">
+  <actions>
+    <org.jenkinsci.plugins.pipeline.modeldefinition.actions.DeclarativeJobAction plugin="pipeline-model-definition@1.8.4"/>
+    <org.jenkinsci.plugins.pipeline.modeldefinition.actions.DeclarativeJobPropertyTrackerAction plugin="pipeline-model-definition@1.8.4">
+      <jobProperties/>
+      <triggers/>
+      <parameters/>
+      <options/>
+    </org.jenkinsci.plugins.pipeline.modeldefinition.actions.DeclarativeJobPropertyTrackerAction>
+    <org.jenkinsci.plugins.workflow.multibranch.JobPropertyTrackerAction plugin="workflow-multibranch@2.22">
+      <jobPropertyDescriptors>
+        <string>org.jenkinsci.plugins.workflow.job.properties.PipelineTriggersJobProperty</string>
+      </jobPropertyDescriptors>
+    </org.jenkinsci.plugins.workflow.multibranch.JobPropertyTrackerAction>
+  </actions>
+  <description></description>
+  <keepDependencies>false</keepDependencies>
+  <properties>
+    <com.coravy.hudson.plugins.github.GithubProjectProperty plugin="github@1.33.1">
+      <projectUrl>https://github.com/aida72/TrgProject.git/</projectUrl>
+      <displayName></displayName>
+    </com.coravy.hudson.plugins.github.GithubProjectProperty>
+    <org.jenkinsci.plugins.workflow.job.properties.PipelineTriggersJobProperty>
+      <triggers>
+        <hudson.triggers.SCMTrigger>
+          <spec>H * * * *</spec>
+          <ignorePostCommitHooks>false</ignorePostCommitHooks>
+        </hudson.triggers.SCMTrigger>
+      </triggers>
+    </org.jenkinsci.plugins.workflow.job.properties.PipelineTriggersJobProperty>
+  </properties>
+  <definition class="org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition" plugin="workflow-cps@2.90">
+    <script>def  app = &apos;&apos;
+pipeline {
+    agent any
+    stages {
+            stage(&apos;Initialize&apos;) {
+                steps {
+                    script {
+                        properties([pipelineTriggers([pollSCM(&apos;H * * * *&apos;)])])
+                    }
+                    git branch: &quot;main&quot;, url: &apos;https://github.com/aida72/TrgProject.git&apos;
+                }
+            }
+            stage(&apos;Build image&apos;) {         
+                steps {
+                        script {
+                            app = docker.build(&quot;123456odi/trgproject&quot;)   
+                        }
+                    }   
+            }
+            stage(&apos;Test image&apos;) { 
+                steps {
+                        script {          
+                        app.inside {                 
+                            sh &apos;python /code/test_hello_world.py&apos;       
+                        }    
+                        }
+                }
+            }
+            stage(&apos;Push image&apos;) {
+                steps {
+                    script {
+                        docker.withRegistry(&apos;https://registry.hub.docker.com&apos;, &apos;dockerhub&apos;) {            
+                            app.push(&quot;${env.BUILD_NUMBER}&quot;)            
+                            app.push(&quot;latest&quot;) 
+                        } 
+                    }
+                }  
+            }
+            stage(&apos;add ansible&apos;) {
+                steps {
+                    script {
+                        ansiblePlaybook( 
+                            playbook: &apos;ansible/playbook.yml&apos;
+                        )
+                    }
+                }
+            }
+        }
+}</script>
+    <sandbox>true</sandbox>
+  </definition>
+  <triggers/>
+  <disabled>false</disabled>
+</flow-definition>
